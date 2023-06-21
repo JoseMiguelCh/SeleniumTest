@@ -1,3 +1,5 @@
 .env
 *.ipynb
 Record.mov
+.vscode/launch.json
+.gitignore

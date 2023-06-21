@@ -1,82 +1,146 @@
+import logging
 import os
 import smtplib
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium import webdriver
+import holidays
+
+from datetime import date, timedelta
 from dotenv import load_dotenv
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from webdriver_manager.chrome import ChromeDriverManager
 
-load_dotenv()
 
-result_op = False
-browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
-wait = WebDriverWait(browser, 2)
+def login(browser, email, password):
+    """
+    Logs into the website with the given credentials.
 
-# wait for page to load
-browser.implicitly_wait(5)
+    Args:
+        browser (webdriver): The webdriver instance.
+        email (str): The user's email address.
+        password (str): The user's password.
 
-browser.get(os.getenv("URL"))
-try:
-    email = wait.until(EC.presence_of_element_located((By.ID, "usernameId_new")))
-    email.send_keys(os.getenv("EMAIL"))
-    password = wait.until(EC.presence_of_element_located((By.ID, "passwordId_new")))
-    password.send_keys(os.getenv("PASSWORD"))
+    Returns:
+        bool: True if login was successful, False otherwise.
+    """
+    browser.get(os.getenv("URL"))
+    email_input = wait.until(
+        EC.presence_of_element_located((By.ID, "usernameId_new")))
+    email_input.send_keys(email)
+    password_input = wait.until(
+        EC.presence_of_element_located((By.ID, "passwordId_new")))
+    password_input.send_keys(password)
+    login_button = browser.find_element(By.CLASS_NAME, "formLoginButton_new")
+    login_button.click()
 
-    browser.find_element(By.CLASS_NAME, "formLoginButton_new").click()
+    try:
+        todos_link = browser.find_element(By.CSS_SELECTOR, ".todosItemList a")
+        todos_link.click()
+    except NoSuchElementException as e:
+        logging.warning(f"Could not find todos link: {e}")
+        return False
 
-    todos_list = browser.find_element(By.CLASS_NAME, "todosItemList")
-    todos = todos_list.find_element(By.TAG_NAME, "a")
-    todos.click()
+    return True
 
-    time_sheet = wait.until(EC.presence_of_element_located((By.ID, "time_sheet_week_1")))
-    rows = time_sheet.find_elements(By.TAG_NAME, "tr")
-    row_input = None
-    row_total = None
+def fill_time_sheet(browser, hours_per_day, comment, country):
+    """
+    Fills out the time sheet with the given hours and comment.
 
-    for row in rows:
-        if row.get_attribute("class") == "hoursWorked":
-            row_input = row
-        if row.get_attribute("class") == "hoursTotal":
-            row_total = row
-        if row_input and row_total:
-            break
+    Args:
+        browser (webdriver): The webdriver instance.
+        hours_per_day (str): The number of hours worked per day.
+        comment (str): The comment to add to the time sheet.
+    """
+    time_sheet_input = wait.until(
+        EC.presence_of_element_located((By.ID, "time_sheet_week_1")))
 
-    for entry in row_input.find_elements(By.TAG_NAME, "td"):
-        if "nonWorkingDay" not in entry.get_attribute("class"):
-            try:
-                input = entry.find_element(By.TAG_NAME, "input")
-                input.send_keys(os.getenv("HOURS_PER_DAY"))
-            except:
-                pass
+    # Fill out hours worked and comments
+    row_inputs = time_sheet_input.find_elements(By.CSS_SELECTOR, ".hoursWorked input")
+    comment_input = browser.find_elements(By.CSS_SELECTOR, "textarea[name*='comments']")[0]
+    day_of_week = date.today() - timedelta(days=date.today().weekday()) # Monday of current week
+    country_holidays = holidays.country_holidays(country, years=date.today().year)
+    holidays_count = 0
 
-    time_sheet.click()  
-    total_hours = row_total.find_element(By.CLASS_NAME, "rowTotal").get_attribute("innerHTML")
+    for entry in row_inputs:
+        if "nonWorkingDay" not in entry.get_attribute("class") and "hour" in entry.get_attribute("class"):
+            if day_of_week not in country_holidays:
+                entry.send_keys(hours_per_day)
+            else:
+                holidays_count += 1
+                logging.info(f"{day_of_week} is a holiday.")
+            day_of_week += timedelta(days=1)
+    
+    comment_input.send_keys(comment)
+    return holidays_count
 
-    textareas = browser.find_elements(By.TAG_NAME, "textarea")
-    for comment in textareas:
-        if "comments" in comment.get_attribute("name"):
-            comment.send_keys(os.getenv("COMMENT"))
-
-    if total_hours == "40h 0m":
+def submit_time_sheet(browser, total_hours):
+    """
+    Submits the time sheet and confirms submission.
+        total_hours is the number of hours to submit per week
+    Returns:
+        bool: True if submission was successful, False otherwise.
+    """
+    total_hours_input = int(browser.find_element(By.CSS_SELECTOR, ".rowTotal").get_attribute("innerHTML").split("h")[0])
+    if total_hours == total_hours_input:
         submit = wait.until(EC.presence_of_element_located((By.ID, "fgTSSubmit")))
         submit.click()
-        #wait.until(EC.presence_of_element_located((By.ID, "update")))
-        #submit = browser.find_element(By.ID, "update")
-        #submit.click()
-        result_op = True
+        confirm_button = wait.until(EC.presence_of_element_located((By.ID, "update")))
+        # confirm_button.click() # Uncomment to submit time sheet
     else:
-        print("Total hours is not 40", total_hours)
-except:
-    pass
+        logging.warning(
+            f"The number of hours worked this week is %d", total_hours)
 
-finally:
-    message = f"Subject: {'Succesfull' if result_op else 'Failed'} filled Arroyo time sheet"
+    # Check if submission successful
+    try:
+        success_message = browser.find_element(By.CLASS_NAME, "successMessage")
+        if "submitted successfully" in success_message.text.lower():
+            return True
+    except NoSuchElementException as e:
+        logging.warning(f"Could not find success message: {e}")
+    return False
 
+def notify_result(result: bool) -> None:
+    """
+    Sends an email notification with the result of the operation.
+    """
+    # Send email notification
+    message = f"Subject: {'Successful' if result else 'Failed'} filled Arroyo time sheet"
     with smtplib.SMTP(os.getenv("EMAIL_HOST"), os.getenv("EMAIL_PORT")) as server:
         server.starttls()
         server.login(os.getenv("EMAIL_ADDRESS"), os.getenv("EMAIL_PASSWORD"))
-        server.sendmail(os.getenv("EMAIL_ADDRESS"), os.getenv("RECIPIENT_EMAIL_ADDRESS"), message)
+        server.sendmail(os.getenv("EMAIL_ADDRESS"), os.getenv(
+            "RECIPIENT_EMAIL_ADDRESS"), message)
 
-    browser.quit()
+if __name__ == "__main__":
+    # Set up logging
+    logging.basicConfig(
+        format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+    # Load environment variables
+    load_dotenv()
+
+    # Set up webdriver
+    browser = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()))
+    wait = WebDriverWait(browser, 2)
+    browser.implicitly_wait(5)
+
+    # Save results
+    result_op = False
+
+    try:
+        if login(browser, os.getenv("EMAIL"), os.getenv("PASSWORD")):
+            holidays = fill_time_sheet(browser, os.getenv("HOURS_PER_DAY"), os.getenv("COMMENT"), os.getenv("COUNTRY"))
+            result_op = submit_time_sheet(browser, int(os.getenv("HOURS_PER_WEEK")) - holidays * int(os.getenv("HOURS_PER_DAY")))
+            if result_op:
+                logging.info("Successfully submitted time sheet.")
+            else:
+                logging.error("Failed to submit time sheet.")
+    except Exception as e:
+        logging.error(f"Encountered exception: {e}")
+    finally:
+        notify_result(result_op)
+        browser.quit()

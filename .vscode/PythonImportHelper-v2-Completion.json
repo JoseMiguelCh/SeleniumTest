@@ -1,0 +1,154 @@
+[
+    {
+        "label": "logging",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "logging",
+        "description": "logging",
+        "detail": "logging",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "smtplib",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "smtplib",
+        "description": "smtplib",
+        "detail": "smtplib",
+        "documentation": {}
+    },
+    {
+        "label": "holidays",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "holidays",
+        "description": "holidays",
+        "detail": "holidays",
+        "documentation": {}
+    },
+    {
+        "label": "date",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "timedelta",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "load_dotenv",
+        "importPath": "dotenv",
+        "description": "dotenv",
+        "isExtraImport": true,
+        "detail": "dotenv",
+        "documentation": {}
+    },
+    {
+        "label": "webdriver",
+        "importPath": "selenium",
+        "description": "selenium",
+        "isExtraImport": true,
+        "detail": "selenium",
+        "documentation": {}
+    },
+    {
+        "label": "NoSuchElementException",
+        "importPath": "selenium.common.exceptions",
+        "description": "selenium.common.exceptions",
+        "isExtraImport": true,
+        "detail": "selenium.common.exceptions",
+        "documentation": {}
+    },
+    {
+        "label": "Service",
+        "importPath": "selenium.webdriver.chrome.service",
+        "description": "selenium.webdriver.chrome.service",
+        "isExtraImport": true,
+        "detail": "selenium.webdriver.chrome.service",
+        "documentation": {}
+    },
+    {
+        "label": "By",
+        "importPath": "selenium.webdriver.common.by",
+        "description": "selenium.webdriver.common.by",
+        "isExtraImport": true,
+        "detail": "selenium.webdriver.common.by",
+        "documentation": {}
+    },
+    {
+        "label": "expected_conditions",
+        "importPath": "selenium.webdriver.support",
+        "description": "selenium.webdriver.support",
+        "isExtraImport": true,
+        "detail": "selenium.webdriver.support",
+        "documentation": {}
+    },
+    {
+        "label": "WebDriverWait",
+        "importPath": "selenium.webdriver.support.ui",
+        "description": "selenium.webdriver.support.ui",
+        "isExtraImport": true,
+        "detail": "selenium.webdriver.support.ui",
+        "documentation": {}
+    },
+    {
+        "label": "ChromeDriverManager",
+        "importPath": "webdriver_manager.chrome",
+        "description": "webdriver_manager.chrome",
+        "isExtraImport": true,
+        "detail": "webdriver_manager.chrome",
+        "documentation": {}
+    },
+    {
+        "label": "login",
+        "kind": 2,
+        "importPath": "automated_fieldglass",
+        "description": "automated_fieldglass",
+        "peekOfCode": "def login(browser, email, password):\n    \"\"\"\n    Logs into the website with the given credentials.\n    Args:\n        browser (webdriver): The webdriver instance.\n        email (str): The user's email address.\n        password (str): The user's password.\n    Returns:\n        bool: True if login was successful, False otherwise.\n    \"\"\"",
+        "detail": "automated_fieldglass",
+        "documentation": {}
+    },
+    {
+        "label": "fill_time_sheet",
+        "kind": 2,
+        "importPath": "automated_fieldglass",
+        "description": "automated_fieldglass",
+        "peekOfCode": "def fill_time_sheet(browser, hours_per_day, comment, country):\n    \"\"\"\n    Fills out the time sheet with the given hours and comment.\n    Args:\n        browser (webdriver): The webdriver instance.\n        hours_per_day (str): The number of hours worked per day.\n        comment (str): The comment to add to the time sheet.\n    \"\"\"\n    time_sheet_input = wait.until(\n        EC.presence_of_element_located((By.ID, \"time_sheet_week_1\")))",
+        "detail": "automated_fieldglass",
+        "documentation": {}
+    },
+    {
+        "label": "submit_time_sheet",
+        "kind": 2,
+        "importPath": "automated_fieldglass",
+        "description": "automated_fieldglass",
+        "peekOfCode": "def submit_time_sheet(browser, total_hours):\n    \"\"\"\n    Submits the time sheet and confirms submission.\n        total_hours is the number of hours to submit per week\n    Returns:\n        bool: True if submission was successful, False otherwise.\n    \"\"\"\n    total_hours_input = int(browser.find_element(By.CSS_SELECTOR, \".rowTotal\").get_attribute(\"innerHTML\").split(\"h\")[0])\n    if total_hours == total_hours_input:\n        submit = wait.until(EC.presence_of_element_located((By.ID, \"fgTSSubmit\")))",
+        "detail": "automated_fieldglass",
+        "documentation": {}
+    },
+    {
+        "label": "notify_result",
+        "kind": 2,
+        "importPath": "automated_fieldglass",
+        "description": "automated_fieldglass",
+        "peekOfCode": "def notify_result(result: bool) -> None:\n    \"\"\"\n    Sends an email notification with the result of the operation.\n    \"\"\"\n    # Send email notification\n    message = f\"Subject: {'Successful' if result else 'Failed'} filled Arroyo time sheet\"\n    with smtplib.SMTP(os.getenv(\"EMAIL_HOST\"), os.getenv(\"EMAIL_PORT\")) as server:\n        server.starttls()\n        server.login(os.getenv(\"EMAIL_ADDRESS\"), os.getenv(\"EMAIL_PASSWORD\"))\n        server.sendmail(os.getenv(\"EMAIL_ADDRESS\"), os.getenv(",
+        "detail": "automated_fieldglass",
+        "documentation": {}
+    }
+]
