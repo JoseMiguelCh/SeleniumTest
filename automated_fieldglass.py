@@ -88,18 +88,12 @@ def submit_time_sheet(browser, total_hours):
         submit = wait.until(EC.presence_of_element_located((By.ID, "fgTSSubmit")))
         submit.click()
         confirm_button = wait.until(EC.presence_of_element_located((By.ID, "update")))
-        # confirm_button.click() # Uncomment to submit time sheet
+        confirm_button.click() # Uncomment to submit time sheet
+        return True
     else:
         logging.warning(
             f"The number of hours worked this week is %d", total_hours)
 
-    # Check if submission successful
-    try:
-        success_message = browser.find_element(By.CLASS_NAME, "successMessage")
-        if "submitted successfully" in success_message.text.lower():
-            return True
-    except NoSuchElementException as e:
-        logging.warning(f"Could not find success message: {e}")
     return False
 
 def notify_result(result: bool) -> None:
